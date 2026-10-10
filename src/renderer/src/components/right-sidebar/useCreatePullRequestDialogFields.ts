@@ -189,7 +189,6 @@ export function useCreatePullRequestDialogFields({
   const repoDefaultBaseRef = useCreatePullRequestBaseRefDiscovery({
     open,
     repoId,
-    settings,
     base,
     baseQuery,
     setBase,

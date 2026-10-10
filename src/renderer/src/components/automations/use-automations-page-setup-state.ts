@@ -5,7 +5,12 @@ import { checkRuntimeHooks } from '@/runtime/runtime-hooks-client'
 import type { AutomationDraft } from './AutomationEditorDialog'
 import { getAutomationHostTargetFromKey, type AutomationHostTarget } from './automation-host-client'
 import { getAutomationCreateRepos } from './automation-create-projects'
-import { toRuntimeExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
+import {
+  getRepoExecutionHostId,
+  toRuntimeExecutionHostId,
+  type ExecutionHostId
+} from '../../../../shared/execution-host'
+import { findRepoForHost } from '@/store/slices/repo-host-identity'
 import { getVisibleAutomationSetupDecision } from './automation-setup-decision'
 import { capturedAutomationOwner, capturedAutomationOwnerKey } from './automation-captured-owner'
 import type { AutomationsPageListState } from './use-automations-page-list-state'
@@ -116,8 +121,13 @@ export function useAutomationsPageSetupState({
       if (existingPromise) {
         return (await existingPromise).hooks
       }
-      const settingsForRepo = getSettingsForRepoRuntimeOwner({ repos, settings }, repoId)
-      const promise = checkRuntimeHooks(settingsForRepo, repoId, hostId)
+      const ownerRepo = hostId ? null : findRepoForHost(repos, repoId, { settings })
+      const ownerHostId = hostId ?? (ownerRepo ? getRepoExecutionHostId(ownerRepo) : null)
+      const promise = (
+        ownerHostId
+          ? checkRuntimeHooks(ownerHostId, repoId)
+          : Promise.reject(new Error('The project host is unknown.'))
+      )
         .then((result) => ({
           hooks: result.status === 'error' ? null : ((result.hooks as OrcaHooks | null) ?? null),
           ok: result.status !== 'error'

@@ -7,11 +7,10 @@ import {
   readRuntimeIssueCommand,
   type IssueCommandReadResult
 } from '@/runtime/runtime-hooks-client'
-import { getRuntimeEnvironmentIdForRepo } from './repo-runtime-owner'
 import { MODAL_DISMISSED_KEY } from '@/store/slices/modal-slot-dismissal'
 import {
   getRepoExecutionHostId,
-  parseExecutionHostId,
+  toRuntimeExecutionHostId,
   type ExecutionHostId
 } from '../../../shared/execution-host'
 
@@ -74,25 +73,26 @@ function findHookRepo(state: AppState, repoId: string, hostId?: ExecutionHostId)
     : state.repos.find((repo) => repo.id === repoId)
 }
 
-function settingsForHookRepoOwner(
+/**
+ * Host that inspects the repo's hooks: a runtime owner the caller captured (a server-owned SSH
+ * repo runs there), else the given host, else the repo row's own. Never the focused host.
+ */
+function hookRepoOwnerHostId(
   state: AppState,
   repoId: string,
   hostId?: ExecutionHostId,
   runtimeOwnerEnvironmentId?: string | null
-): AppState['settings'] {
-  const parsedHost = hostId ? parseExecutionHostId(hostId) : null
-  const runtimeEnvironmentId =
-    runtimeOwnerEnvironmentId?.trim() ||
-    (hostId
-      ? parsedHost?.kind === 'runtime'
-        ? parsedHost.environmentId
-        : null
-      : getRuntimeEnvironmentIdForRepo(state, repoId))
-  // Why: hook inspection must follow the repo owner. SSH/local repos execute
-  // through desktop IPC, while runtime repos may differ from the focused host.
-  return state.settings
-    ? { ...state.settings, activeRuntimeEnvironmentId: runtimeEnvironmentId }
-    : ({ activeRuntimeEnvironmentId: runtimeEnvironmentId } as AppState['settings'])
+): ExecutionHostId {
+  const ownerEnvironmentId = runtimeOwnerEnvironmentId?.trim()
+  if (ownerEnvironmentId) {
+    return toRuntimeExecutionHostId(ownerEnvironmentId)
+  }
+  const repo = hostId ? null : findHookRepo(state, repoId)
+  const ownerHostId = hostId ?? (repo ? getRepoExecutionHostId(repo) : null)
+  if (!ownerHostId) {
+    throw new Error('The project host is unknown.')
+  }
+  return ownerHostId
 }
 
 function canUseRepoWideTrust(state: AppState, repoId: string): boolean {
@@ -215,11 +215,7 @@ export async function readAndConfirmRuntimeIssueCommand(
 ): Promise<ConfirmedRuntimeIssueCommand> {
   let result: IssueCommandReadResult
   try {
-    result = await readRuntimeIssueCommand(
-      settingsForHookRepoOwner(state, repoId, hostId),
-      repoId,
-      hostId
-    )
+    result = await readRuntimeIssueCommand(hookRepoOwnerHostId(state, repoId, hostId), repoId)
   } catch {
     result = {
       status: 'error',
@@ -258,9 +254,8 @@ export async function ensureHooksConfirmed(
         // Why: hostId disambiguates duplicate repo ids on the local IPC path,
         // matching the checkRuntimeHooks call below.
         const result = await readRuntimeIssueCommand(
-          settingsForHookRepoOwner(state, repoId, hostId, runtimeOwnerEnvironmentId),
-          repoId,
-          hostId
+          hookRepoOwnerHostId(state, repoId, hostId, runtimeOwnerEnvironmentId),
+          repoId
         )
         if (result.source === 'local') {
           return 'run'
@@ -285,9 +280,8 @@ export async function ensureHooksConfirmed(
           return 'run'
         }
         const result = await checkRuntimeHooks(
-          settingsForHookRepoOwner(state, repoId, hostId, runtimeOwnerEnvironmentId),
-          repoId,
-          hostId
+          hookRepoOwnerHostId(state, repoId, hostId, runtimeOwnerEnvironmentId),
+          repoId
         )
         if (result.status === 'error') {
           return 'skip'

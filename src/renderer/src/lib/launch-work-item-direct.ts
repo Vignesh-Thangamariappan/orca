@@ -1,3 +1,4 @@
+import { getRepoExecutionHostId } from '../../../shared/execution-host'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import {
@@ -114,7 +115,11 @@ export async function launchWorkItemDirect(args: LaunchWorkItemDirectArgs): Prom
       ? store.ensureRemoteDetectedAgents(repoConnectionId)
       : store.ensureDetectedAgents()
 
-  const setupResolution = await resolveDirectSetupDecision(repoId, repo, repoOwnerSettings)
+  const setupResolution = await resolveDirectSetupDecision(
+    repoId,
+    repo,
+    getRepoExecutionHostId(repo)
+  )
   if (setupResolution.kind === 'needs-modal') {
     openModalFallback()
     return false

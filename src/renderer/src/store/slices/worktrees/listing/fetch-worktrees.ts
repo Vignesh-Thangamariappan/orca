@@ -93,7 +93,7 @@ export function createFetchWorktrees(
         }
         return false
       }
-      const refresh = await listDetectedWorktreesForRepoCoalesced(settings, repoId, {
+      const refresh = await listDetectedWorktreesForRepoCoalesced(repoId, {
         executionHostId: hostId,
         requireAuthoritative: options?.requireAuthoritative,
         directSshAuthority,
