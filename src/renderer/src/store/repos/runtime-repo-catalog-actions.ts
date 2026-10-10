@@ -123,7 +123,7 @@ export function createRuntimeRepoCatalogActions(
             )
           }
         })
-        scheduleSafeAutoForkSync(get, finalizedHostRepos)
+        scheduleSafeAutoForkSync(finalizedHostRepos)
         return finalizedHostRepos
       } catch (err) {
         console.error(`Failed to fetch repos for runtime environment ${environmentId}:`, err)
