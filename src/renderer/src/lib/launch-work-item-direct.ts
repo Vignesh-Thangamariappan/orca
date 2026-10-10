@@ -33,7 +33,6 @@ import {
 } from '@/lib/launch-work-item-direct-preflight'
 import type { LaunchWorkItemDirectArgs } from '@/lib/launch-work-item-direct-types'
 import { resolveSourceControlLaunchPlatform } from '@/lib/source-control-launch-platform'
-import { getSettingsForRepoRuntimeOwner } from '@/lib/repo-runtime-owner'
 import { runtimeTargetForOwnerHostId } from '@/runtime/runtime-client-target'
 import { getLocalRepoProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import { beginDirectWorkItemStructuredLaunch } from '@/lib/launch-work-item-direct-agent-routing'
@@ -68,16 +67,18 @@ export async function launchWorkItemDirect(args: LaunchWorkItemDirectArgs): Prom
     agentArgs
   } = args
   const store = useAppStore.getState()
-  const repo = store.repos.find((r) => r.id === repoId)
-  if (!repo) {
+  // Why: one owner row for preflight, the PR start point and createWorktree. Duplicate ids across
+  // hosts need the user's pick, so they go to the modal instead of a focus tie-break.
+  const repoRows = store.repos.filter((r) => r.id === repoId)
+  const repo = repoRows.length === 1 ? repoRows[0] : undefined
+  const repoOwnerHostId = repo ? getRepoExecutionHostId(repo) : null
+  const repoOwnerTarget = runtimeTargetForOwnerHostId(repoOwnerHostId)
+  if (!repo || !repoOwnerHostId || !repoOwnerTarget) {
     openModalFallback()
     return false
   }
 
   const settings = store.settings
-  // Why: preflight (PR base + hooks probe) must run on the repo's owner host so it
-  // matches the owner-routed createWorktree below, not the focused runtime.
-  const repoOwnerSettings = getSettingsForRepoRuntimeOwner(store, repoId)
   const promptDelivery = args.promptDelivery ?? 'draft'
   const repoConnectionId = repo.connectionId?.trim() || null
   const githubIdentity =
@@ -116,7 +117,7 @@ export async function launchWorkItemDirect(args: LaunchWorkItemDirectArgs): Prom
       ? store.ensureRemoteDetectedAgents(repoConnectionId)
       : store.ensureDetectedAgents()
 
-  const setupResolution = await resolveDirectSetupDecision(repoId, repo, repoOwnerSettings)
+  const setupResolution = await resolveDirectSetupDecision(repoId, repo, repoOwnerHostId)
   if (setupResolution.kind === 'needs-modal') {
     openModalFallback()
     return false
@@ -149,12 +150,7 @@ export async function launchWorkItemDirect(args: LaunchWorkItemDirectArgs): Prom
     try {
       // Why: direct "Use PR" launches bypass the Start-from picker, so they
       // must still resolve the PR head before `git worktree add`.
-      const result = await resolveDirectPrStartPoint(
-        repoId,
-        itemNumber,
-        runtimeTargetForOwnerHostId(getRepoExecutionHostId(repo)),
-        item
-      )
+      const result = await resolveDirectPrStartPoint(repoId, itemNumber, repoOwnerTarget, item)
       resolvedBaseBranch = result.baseBranch
       resolvedPushTarget = result.pushTarget
       resolvedBranchNameOverride = result.branchNameOverride
@@ -202,7 +198,8 @@ export async function launchWorkItemDirect(args: LaunchWorkItemDirectArgs): Prom
       undefined,
       undefined,
       undefined,
-      resolvedCompareBaseRef
+      resolvedCompareBaseRef,
+      { executionHostId: repoOwnerHostId }
     )
     worktreeId = result.worktree.id
     worktreePath = result.worktree.path
