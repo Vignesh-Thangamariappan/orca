@@ -46,6 +46,7 @@ export function NativeChatReasoningRow({
   }
   const label = translate('components.native-chat.reasoning', 'Reasoning')
   const headline = translatedHeadline(nativeChatReasoningHeadline(message, { live: turnIsWorking }))
+  const preview = markdown.trim().split('\n', 1)[0].trim().slice(0, 160)
 
   return (
     <div className="min-w-0 text-sm text-muted-foreground">
@@ -58,9 +59,14 @@ export function NativeChatReasoningRow({
           >
             {headline === label ? null : <span className="sr-only">{label}: </span>}
             <NativeChatToolRunIcon iconName="brain" className="text-chat-foreground-faint" />
-            <span className="min-w-0 truncate text-sm native-chat-message-text leading-relaxed text-chat-foreground-faint transition-colors group-hover/reasoning:text-chat-foreground">
+            <span className="shrink-0 text-sm native-chat-message-text leading-relaxed text-chat-foreground-faint transition-colors group-hover/reasoning:text-chat-foreground">
               {headline}
             </span>
+            {!disclosure.open && preview ? (
+              <span className="min-w-0 truncate text-sm native-chat-message-text leading-relaxed text-chat-foreground-faint">
+                {preview}
+              </span>
+            ) : null}
             <NativeChatReasoningChevron />
           </button>
         </CollapsibleTrigger>

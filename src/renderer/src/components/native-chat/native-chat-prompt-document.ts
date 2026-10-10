@@ -74,8 +74,11 @@ export function promptTextMap(doc: ProseMirrorNode): { text: string; positions: 
   return { text, positions }
 }
 
-export function promptTextOffset(doc: ProseMirrorNode, position: number): number {
-  const { positions } = promptTextMap(doc)
+export function promptTextOffset(
+  doc: ProseMirrorNode,
+  position: number,
+  positions = promptTextMap(doc).positions
+): number {
   const index = positions.findIndex((candidate) => candidate >= position)
   return index === -1 ? positions.length - 1 : index
 }

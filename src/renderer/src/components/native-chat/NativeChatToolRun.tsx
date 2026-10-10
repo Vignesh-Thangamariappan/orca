@@ -22,7 +22,7 @@ import {
   NATIVE_CHAT_TOOL_ACTIVITY_COPY,
   selectActiveToolCall
 } from '../../../../shared/native-chat-tool-activity'
-import { nativeChatToolRunIconName } from './native-chat-tool-category'
+import { nativeChatToolCategory, nativeChatToolRunIconName } from './native-chat-tool-category'
 import { nativeChatToolRunOutcome } from '../../../../shared/native-chat-tool-run-outcome'
 import {
   nativeChatAskRunBlocks,
@@ -116,8 +116,6 @@ export function NativeChatToolRun({
     disclosureId === undefined
       ? undefined
       : `run:${disclosureId}:${expandSignal}:${revealedDiff?.requestId ?? '-'}`
-  const { open, setOpen } = useNativeChatDisclosure(runKey, revealedDiff ? true : expandSignal)
-
   // Childless groups are dropped so `subagentRows.length` stays an honest test of
   // "something will draw": the roster-only branch below returns a margin-bearing
   // wrapper on the strength of it, and a group with no children renders null.
@@ -151,6 +149,15 @@ export function NativeChatToolRun({
     unansweredAsks,
     work: headerBlocks
   } = useMemo(() => nativeChatAskRunBlocks(blocks), [blocks])
+  const calls = headerBlocks.filter(isToolCallBlock)
+  const revealReadFiles =
+    calls.length > 0 &&
+    calls.length <= 3 &&
+    calls.every((call) => nativeChatToolCategory(call.name, call.mcpIdentity) === 'read')
+  const { open, setOpen } = useNativeChatDisclosure(
+    runKey,
+    revealedDiff ? true : expandSignal || revealReadFiles
+  )
   const hasAskCall = asks.length > 0
   const askSubject = hasAskCall ? nativeChatAskRunSubject(asks) : null
   const callCount = countToolCalls(headerBlocks)
@@ -172,7 +179,7 @@ export function NativeChatToolRun({
   // What the run is doing now, beside the sentence: the latest call, running or
   // not, so a call that finished in a frame still leaves its name until the next.
   const latestCall = live ? headerBlocks.findLast(isToolCallBlock) : undefined
-  const latestCallLabel = latestCall ? describeLatestToolCall(latestCall) : null
+  const latestCallLabel = latestCall && !revealReadFiles ? describeLatestToolCall(latestCall) : null
   const {
     succeeded: runSucceeded,
     failedCallCount,

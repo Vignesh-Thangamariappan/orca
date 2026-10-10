@@ -30,10 +30,9 @@ describe('reasoning disclosure', () => {
         markdown={'\n\nInspecting the request\nFull reasoning'}
       />
     )
-    expect(screen.getByRole('button', { name: 'Reasoning: Thought' })).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    )
+    expect(
+      screen.getByRole('button', { name: 'Reasoning: Thought Inspecting the request' })
+    ).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByTestId('markdown')).not.toBeInTheDocument()
     // The same category glyph slot a tool row leads with, hidden from the accessible name.
     const glyph = screen.getByRole('button').querySelector('svg.lucide-brain')
@@ -91,6 +90,7 @@ describe('reasoning disclosure', () => {
     expect(trigger.tagName).toBe('BUTTON')
     fireEvent.click(trigger)
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    expect(trigger).not.toHaveTextContent('Inspecting')
     expect(screen.getByTestId('markdown')).toHaveTextContent('Inspecting')
     rerender(<NativeChatReasoningRow message={message} markdown={'Inspecting\nMore'} />)
     expect(screen.getByRole('button')).toBe(trigger)
@@ -155,7 +155,7 @@ describe('the reasoning headline', () => {
 
   // The live line hides the one block it discloses; any other open row draws, claiming no end.
   it('reads Reasoning while the row is open and its turn or subagent is running', () => {
-    expect(headline({ timestamp: STARTED, state: 'running' }, true)).toBe('Reasoning')
+    expect(headline({ timestamp: STARTED, state: 'running' }, true)).toBe('ReasoningReasoned')
   })
 
   it('reads Thought for N s once it closes, while the turn goes on working', () => {
@@ -175,13 +175,13 @@ describe('the reasoning headline', () => {
   })
 
   it('claims no duration it never saw, and draws an open row in a settled turn as Thought', () => {
-    expect(headline({ timestamp: STARTED, state: 'completed' })).toBe('Reasoning: Thought')
+    expect(headline({ timestamp: STARTED, state: 'completed' })).toBe('Reasoning: ThoughtReasoned')
     cleanup()
-    expect(headline({ timestamp: STARTED, state: 'running' })).toBe('Reasoning: Thought')
+    expect(headline({ timestamp: STARTED, state: 'running' })).toBe('Reasoning: ThoughtReasoned')
   })
 
   it('stays neutral for a row from a host that kept no lifecycle', () => {
-    expect(headline({ timestamp: STARTED }, true)).toBe('Reasoning')
+    expect(headline({ timestamp: STARTED }, true)).toBe('ReasoningReasoned')
   })
 
   it('draws through the message row while open, and reads its span once it closes', () => {

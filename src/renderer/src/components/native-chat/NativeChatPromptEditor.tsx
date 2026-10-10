@@ -5,7 +5,9 @@ import {
 import { hasUnsavedNativeChatComposerDraftChange } from './native-chat-composer-draft-store'
 import { closeHistory } from '@tiptap/pm/history'
 import { Slice } from '@tiptap/pm/model'
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import {
+  useCallback,
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
@@ -49,6 +51,19 @@ export function NativeChatPromptEditor({
 }: Props): React.JSX.Element {
   const placeholderRef = useRef(placeholder)
   placeholderRef.current = placeholder
+  const promptMapRef = useRef<{
+    doc: ProseMirrorNode
+    map: ReturnType<typeof promptTextMap>
+  } | null>(null)
+  const readPromptMap = useCallback((doc: ProseMirrorNode) => {
+    const cached = promptMapRef.current
+    if (cached?.doc === doc) {
+      return cached.map
+    }
+    const map = promptTextMap(doc)
+    promptMapRef.current = { doc, map }
+    return map
+  }, [])
   const editor = useEditor(
     {
       extensions: [
@@ -119,7 +134,7 @@ export function NativeChatPromptEditor({
         ) {
           writeNativeChatDraftDocument(
             scopeKey,
-            promptTextMap(current.state.doc).text,
+            readPromptMap(current.state.doc).text,
             current.getJSON()
           )
         }
@@ -153,10 +168,10 @@ export function NativeChatPromptEditor({
               )
             },
             get value() {
-              return promptTextMap(editor.state.doc).text
+              return readPromptMap(editor.state.doc).text
             },
             set value(value: string) {
-              const old = promptTextMap(editor.state.doc)
+              const old = readPromptMap(editor.state.doc)
               if (old.text === value) {
                 return
               }
@@ -216,10 +231,18 @@ export function NativeChatPromptEditor({
               editor.setEditable(!value)
             },
             get selectionStart() {
-              return promptTextOffset(editor.state.doc, editor.state.selection.from)
+              return promptTextOffset(
+                editor.state.doc,
+                editor.state.selection.from,
+                readPromptMap(editor.state.doc).positions
+              )
             },
             get selectionEnd() {
-              return promptTextOffset(editor.state.doc, editor.state.selection.to)
+              return promptTextOffset(
+                editor.state.doc,
+                editor.state.selection.to,
+                readPromptMap(editor.state.doc).positions
+              )
             },
             focus: () => {
               // Why: a blurred editor never writes its caret to the page, so focusing the element
@@ -235,12 +258,12 @@ export function NativeChatPromptEditor({
               if (!selection.empty) {
                 return false
               }
-              const { text } = promptTextMap(doc)
+              const { text, positions } = readPromptMap(doc)
               // An empty composer has one line: no layout read on the path every recall starts from.
               if (text === '') {
                 return true
               }
-              const caret = promptTextOffset(doc, selection.from)
+              const caret = promptTextOffset(doc, selection.from, positions)
               const beyond = edge === 'start' ? text.slice(0, caret) : text.slice(caret)
               // Why both: the text check covers other paragraphs, the view covers soft wraps.
               return (
@@ -252,14 +275,14 @@ export function NativeChatPromptEditor({
               editor.commands.selectAll()
             },
             setSelectionRange: (from, to) => {
-              const { positions } = promptTextMap(editor.state.doc)
+              const { positions } = readPromptMap(editor.state.doc)
               editor.commands.setTextSelection({
                 from: positions[Math.min(from ?? 0, positions.length - 1)],
                 to: positions[Math.min(to ?? 0, positions.length - 1)]
               })
             },
             insertSkill: (from, to, token) => {
-              const { positions } = promptTextMap(editor.state.doc)
+              const { positions } = readPromptMap(editor.state.doc)
               editor.view.dispatch(closeHistory(editor.state.tr))
               editor
                 .chain()
@@ -278,7 +301,7 @@ export function NativeChatPromptEditor({
             }
           }
         : null,
-    [editor, scopeKey]
+    [editor, scopeKey, readPromptMap]
   )
   useImperativeHandle(inputRef, () => input!, [input])
 
