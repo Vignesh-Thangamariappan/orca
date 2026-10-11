@@ -1,12 +1,12 @@
 import { memo, useEffect, useRef } from 'react'
-import { Package, RotateCcw } from 'lucide-react'
+import { Folder, Package, RotateCcw } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { SkillSourceKind } from '../../../../shared/skills'
 import { FilenameFirstPath } from '@/components/file-path-cursor-tooltip'
 import { getFileTypeIcon } from '@/lib/file-type-icons'
 import type { ComposerAutocomplete, NativeChatPickerItem } from './native-chat-composer-state'
-import type { NativeChatMentionFiles } from './use-native-chat-mention-files'
+import type { NativeChatMentionFiles, NativeChatMentionItem } from './use-native-chat-mention-files'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
 export const NativeChatPickerMenu = memo(function NativeChatPickerMenu({
@@ -316,39 +316,50 @@ export const NativeChatMentionMenu = memo(function NativeChatMentionMenu({
   mention: NativeChatMentionFiles
   activeIndex: number
   listboxId: string
-  onChoose: (path: string) => void
+  onChoose: (item: NativeChatMentionItem) => void
 }): React.JSX.Element {
   const activeItemRef = useRef<HTMLButtonElement | null>(null)
-  const { files } = mention
-  const selectedIndex = Math.min(activeIndex, files.length - 1)
+  const { items } = mention
+  const selectedIndex = Math.min(activeIndex, items.length - 1)
 
   useEffect(() => {
     activeItemRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [selectedIndex, files])
+  }, [selectedIndex, items])
 
   const statusText =
-    files.length > 0
+    items.length > 0
       ? null
       : mention.loading
-        ? translate('components.native-chat.composer.loadingFiles', 'Loading files...')
+        ? translate(
+            'components.native-chat.composer.loadingFilesAndFolders',
+            'Loading files and folders...'
+          )
         : mention.failed
           ? translate('components.native-chat.composer.filesLoadFailed', "Couldn't load files")
-          : translate('components.native-chat.composer.noFiles', 'No matching files')
+          : translate(
+              'components.native-chat.composer.noFilesOrFolders',
+              'No matching files or folders'
+            )
 
   return (
     <PickerListbox id={listboxId}>
-      {files.map((path, index) => {
-        const FileIcon = getFileTypeIcon(path)
+      {items.map((item, index) => {
+        const FileIcon = item.kind === 'folder' ? Folder : getFileTypeIcon(item.path)
         return (
           <PickerOptionButton
-            key={path}
+            key={`${item.kind}:${item.path}`}
             id={`${listboxId}-option-${index}`}
             selected={index === selectedIndex}
             activeItemRef={activeItemRef}
-            onChoose={() => onChoose(path)}
+            onChoose={() => onChoose(item)}
           >
             <FileIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-            <FilenameFirstPath path={path} />
+            <FilenameFirstPath path={item.path} />
+            {item.kind === 'folder' ? (
+              <span className="shrink-0 text-[11px] text-muted-foreground">
+                {translate('components.native-chat.composer.folder', 'Folder')}
+              </span>
+            ) : null}
           </PickerOptionButton>
         )
       })}

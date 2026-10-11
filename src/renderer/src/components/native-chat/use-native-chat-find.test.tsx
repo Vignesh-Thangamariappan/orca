@@ -63,7 +63,7 @@ function ComposerField({
     autocomplete: suggestionsOpen
       ? { mode: 'mention', query: '', triggerKey: '@' }
       : { mode: 'none' },
-    mentionFiles: { files: [], loading: false, failed: false },
+    mentionFiles: { items: [], loading: false, failed: false },
     completeMention: vi.fn(),
     activeSuggestion: 0,
     draft: '',

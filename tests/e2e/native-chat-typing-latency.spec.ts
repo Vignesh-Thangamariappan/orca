@@ -52,7 +52,7 @@ test('chat composer keeps up with typing in a long conversation and draft', asyn
   await expect(orcaPage.getByText('assistant message 119:', { exact: false })).toBeVisible()
 
   const composer = orcaPage.getByRole('textbox', {
-    name: 'Ask anything, @ to mention files, / for commands',
+    name: 'Ask anything, @ for files or folders, / for commands',
     exact: true
   })
   await expect(composer).toBeVisible()

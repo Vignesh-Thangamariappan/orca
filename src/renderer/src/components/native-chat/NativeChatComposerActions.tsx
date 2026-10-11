@@ -39,6 +39,7 @@ export type NativeChatComposerActionsProps = {
   sessionOptionsSurface: SessionOptionsSurface | null
   sessionOptionsSnapshot: SessionOptionDescriptor[]
   sessionOptionsPickerRequest?: NativeChatOptionPickerRequest | null
+  modelShortcutSequence?: number
   focusComposer?: () => void
   /** Present while the composer is in goal mode; the chip calls it to leave. */
   onExitGoalMode?: () => void
@@ -67,6 +68,7 @@ export function NativeChatComposerActions({
   sessionOptionsSurface,
   sessionOptionsSnapshot,
   sessionOptionsPickerRequest,
+  modelShortcutSequence = 0,
   onExitGoalMode,
   contextUsage,
   focusComposer
@@ -151,6 +153,7 @@ export function NativeChatComposerActions({
           snapshot={sessionOptionsSnapshot}
           isWorking={isWorking}
           pickerRequest={sessionOptionsPickerRequest}
+          modelShortcutSequence={modelShortcutSequence}
           focusComposer={focusComposer}
         />
         {contextUsage ? <NativeChatContextUsageRing usage={contextUsage} /> : null}

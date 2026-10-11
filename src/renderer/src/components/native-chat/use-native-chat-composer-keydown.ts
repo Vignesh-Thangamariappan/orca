@@ -7,6 +7,9 @@ import {
 } from 'react'
 import type { ComposerAutocomplete, NativeChatPickerItem } from './native-chat-composer-state'
 import { isMacPlatform } from './native-chat-shortcut'
+import { keybindingMatchesAction } from '../../../../shared/keybindings'
+import { getShortcutPlatform } from '@/lib/shortcut-platform'
+import { useAppStore } from '@/store'
 import type { NativeChatMentionFiles } from './use-native-chat-mention-files'
 import {
   isNativeChatRecallActive,
@@ -19,6 +22,7 @@ export type UseNativeChatComposerKeyDownArgs = {
   autocomplete: ComposerAutocomplete
   mentionFiles: NativeChatMentionFiles
   completeMention: (path: string) => void
+  openModelPicker?: () => void
   activeSuggestion: number
   draft: string
   /** Image chips count as composer content, like typed text. */
@@ -42,6 +46,7 @@ export function useNativeChatComposerKeyDown({
   autocomplete,
   mentionFiles,
   completeMention,
+  openModelPicker,
   activeSuggestion,
   draft,
   hasAttachments = false,
@@ -75,8 +80,22 @@ export function useNativeChatComposerKeyDown({
         return
       }
 
+      if (
+        openModelPicker &&
+        keybindingMatchesAction(
+          'chat.modelPicker',
+          event,
+          getShortcutPlatform(),
+          useAppStore.getState().keybindings
+        )
+      ) {
+        event.preventDefault()
+        openModelPicker()
+        return
+      }
+
       if (autocomplete.mode !== 'none') {
-        const items = autocomplete.mode === 'slash' ? autocomplete.items : mentionFiles.files
+        const items = autocomplete.mode === 'slash' ? autocomplete.items : mentionFiles.items
         if (event.key === 'ArrowDown' && items.length > 0) {
           event.preventDefault()
           setActiveSuggestion((index) => (index + 1) % items.length)
@@ -92,8 +111,11 @@ export function useNativeChatComposerKeyDown({
         if (picks && items.length > 0) {
           event.preventDefault()
           if (autocomplete.mode === 'mention') {
-            const { files } = mentionFiles
-            completeMention(files[Math.min(activeSuggestion, files.length - 1)])
+            const { items } = mentionFiles
+            const item = items[Math.min(activeSuggestion, items.length - 1)]
+            if (item) {
+              completeMention(item.kind === 'folder' ? `${item.path}/` : item.path)
+            }
             return
           }
           const item = autocomplete.items[activeSuggestion] ?? autocomplete.items[0]
@@ -177,6 +199,7 @@ export function useNativeChatComposerKeyDown({
       interrupt,
       isComposing,
       mentionFiles,
+      openModelPicker,
       send,
       steerQueued,
       setActiveSuggestion,

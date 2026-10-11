@@ -75,7 +75,7 @@ test('Copy image puts the full-size image on the clipboard and keeps the preview
       state.toggleTabViewMode(tab.id)
     }, descriptor)
     const composer = orcaPage.getByRole('textbox', {
-      name: 'Ask anything, @ to mention files, / for commands',
+      name: 'Ask anything, @ for files or folders, / for commands',
       exact: true
     })
     await expect(composer).toBeVisible()

@@ -44,6 +44,7 @@ export type NativeChatSessionOptionPickersProps = {
   snapshot: SessionOptionDescriptor[]
   isWorking: boolean
   pickerRequest?: NativeChatOptionPickerRequest | null
+  modelShortcutSequence?: number
   /** Where focus lands after a pick; see `useNativeChatPickerFocusReturn`. */
   focusComposer?: () => void
 }
@@ -229,6 +230,7 @@ function NativeChatSessionOptionPickersInner({
   snapshot,
   isWorking,
   pickerRequest,
+  modelShortcutSequence = 0,
   focusComposer
 }: NativeChatSessionOptionPickersProps): React.JSX.Element | null {
   const [pendingId, setPendingId] = useState<string | null>(null)
@@ -252,9 +254,9 @@ function NativeChatSessionOptionPickersInner({
   }
 
   const modelReason = nativeChatSessionOptionDisabledReason(model.disabledReason)
-  const modelPickerKey = `model:${requestedModelSequence ?? 'idle'}`
+  const modelPickerKey = `model:${requestedModelSequence ?? 'idle'}:${modelShortcutSequence}`
   // Read only when a request remounts the picker.
-  const modelPickerDefaultOpen = requestedModelSequence !== null
+  const modelPickerDefaultOpen = requestedModelSequence !== null || modelShortcutSequence > 0
   const modelTrigger = {
     label: nativeChatModelPillLabel(model),
     tooltipLabel: translate('components.native-chat.composer.model', 'Model'),

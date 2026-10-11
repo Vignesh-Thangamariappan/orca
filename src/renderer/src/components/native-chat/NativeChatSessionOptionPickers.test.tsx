@@ -258,6 +258,33 @@ const fast: SessionOptionDescriptor = {
 afterEach(() => cleanup())
 
 describe('NativeChatSessionOptionPickers', () => {
+  it('opens the model search when the composer shortcut requests it', async () => {
+    const { rerender } = render(
+      <NativeChatSessionOptionPickers
+        surface={surface}
+        snapshot={[model()]}
+        isWorking={false}
+        modelShortcutSequence={0}
+      />
+    )
+    rerender(
+      <NativeChatSessionOptionPickers
+        surface={surface}
+        snapshot={[model()]}
+        isWorking={false}
+        modelShortcutSequence={1}
+      />
+    )
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', { name: 'Model Opus 4.8' })
+          .closest('[data-testid="dropdown-root"]')
+          ?.getAttribute('data-open')
+      ).toBe('true')
+    )
+  })
+
   it('opens the native picker requested by a structured slash command', async () => {
     const { rerender } = render(
       <NativeChatSessionOptionPickers

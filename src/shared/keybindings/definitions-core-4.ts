@@ -11,6 +11,14 @@ export const KEYBINDING_DEFINITION_CORE_4: readonly KeybindingDefinition[] = [
     defaultBindings: platformBindings(['Mod+F'])
   },
   {
+    id: 'chat.modelPicker',
+    title: 'Choose chat model',
+    group: 'Chat',
+    scope: 'composer',
+    searchKeywords: ['shortcut', 'chat', 'model', 'picker', 'agent'],
+    defaultBindings: platformBindings(['Mod+Shift+K'])
+  },
+  {
     id: 'sidebar.childWorkspaces.toggle',
     title: 'Toggle Child Workspaces',
     group: 'Global',

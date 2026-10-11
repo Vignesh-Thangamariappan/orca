@@ -43,9 +43,15 @@ function setup(
   draft = '/',
   {
     files = [],
+    folders = [],
     activeSuggestion = 0,
     loading = false
-  }: { files?: readonly string[]; activeSuggestion?: number; loading?: boolean } = {}
+  }: {
+    files?: readonly string[]
+    folders?: readonly string[]
+    activeSuggestion?: number
+    loading?: boolean
+  } = {}
 ) {
   const callbacks = {
     completeMention: vi.fn(),
@@ -61,7 +67,14 @@ function setup(
   const hook = renderHook(() =>
     useNativeChatComposerKeyDown({
       autocomplete,
-      mentionFiles: { files, loading, failed: false },
+      mentionFiles: {
+        items: [
+          ...folders.map((path) => ({ kind: 'folder' as const, path })),
+          ...files.map((path) => ({ kind: 'file' as const, path }))
+        ],
+        loading,
+        failed: false
+      },
       activeSuggestion,
       draft,
       isComposing: () => composing,
@@ -87,6 +100,42 @@ describe('useNativeChatComposerKeyDown', () => {
   const setupMention = (options?: Parameters<typeof setup>[3]) =>
     setup(mention, false, 'open @app', options)
 
+  it('opens the model picker from the platform modifier shortcut', () => {
+    const openModelPicker = vi.fn()
+    const send = vi.fn()
+    const { result } = renderHook(() =>
+      useNativeChatComposerKeyDown({
+        autocomplete: { mode: 'none' },
+        mentionFiles: { items: [], loading: false, failed: false },
+        completeMention: vi.fn(),
+        openModelPicker,
+        activeSuggestion: 0,
+        draft: '',
+        isComposing: () => false,
+        completePickerItem: vi.fn(),
+        dispatchPickerCommand: vi.fn(),
+        dismissPicker: vi.fn(),
+        interrupt: vi.fn(),
+        send,
+        setActiveSuggestion: vi.fn(),
+        setDraft: vi.fn(),
+        setCaret: vi.fn()
+      })
+    )
+    render(<div data-testid="model-shortcut" onKeyDown={result.current} />)
+    const isMac = navigator.userAgent.includes('Mac')
+    fireEvent.keyDown(screen.getByTestId('model-shortcut'), {
+      key: 'K',
+      code: 'KeyK',
+      shiftKey: true,
+      metaKey: isMac,
+      ctrlKey: !isMac
+    })
+    expect(openModelPicker).toHaveBeenCalledOnce()
+    expect(send).not.toHaveBeenCalled()
+    cleanup()
+  })
+
   function press(handler: KeyboardEventHandler<HTMLElement>, key: string, shiftKey = false): void {
     render(<div data-testid="composer" onKeyDown={handler} />)
     fireEvent.keyDown(screen.getByTestId('composer'), { key, shiftKey })
@@ -111,6 +160,13 @@ describe('useNativeChatComposerKeyDown', () => {
     })
     press(handler, 'Enter')
     expect(callbacks.completeMention).toHaveBeenCalledWith('app.css')
+    expect(callbacks.send).not.toHaveBeenCalled()
+  })
+
+  it('inserts a folder reference with a trailing separator', () => {
+    const { handler, callbacks } = setupMention({ folders: ['src/components'] })
+    press(handler, 'Enter')
+    expect(callbacks.completeMention).toHaveBeenCalledWith('src/components/')
     expect(callbacks.send).not.toHaveBeenCalled()
   })
 
@@ -227,7 +283,7 @@ describe('useNativeChatComposerKeyDown', () => {
         autocomplete: { mode: 'none' },
         activeSuggestion: 0,
         draft,
-        mentionFiles: { files: [], loading: false, failed: false },
+        mentionFiles: { items: [], loading: false, failed: false },
         completeMention: vi.fn(),
         recall: {
           source: { messages: prompts.map((text, index) => userMessage(String(index), text)) },

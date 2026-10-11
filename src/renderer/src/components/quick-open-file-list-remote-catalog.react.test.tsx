@@ -84,7 +84,10 @@ describe.each(['paired-detected', 'legacy-ssh'] as const)('%s file catalog', (ow
     )
     await flushEffects()
     expectOwnerRequest()
-    expect(result.current.files).toEqual(['packages/app/package.json'])
+    expect(result.current.items).toContainEqual({
+      kind: 'file',
+      path: 'packages/app/package.json'
+    })
   })
 })
 

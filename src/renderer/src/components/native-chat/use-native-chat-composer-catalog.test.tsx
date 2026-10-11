@@ -128,7 +128,7 @@ it('Enter completes a known pre-init skill while still dispatching a built-in co
           skillsEnabled: true,
           skillStatus: 'ready'
         },
-        mentionFiles: { files: [], loading: false, failed: false },
+        mentionFiles: { items: [], loading: false, failed: false },
         completeMention: vi.fn(),
         activeSuggestion,
         draft: '/',

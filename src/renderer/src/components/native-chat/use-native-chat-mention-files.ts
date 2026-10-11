@@ -7,11 +7,40 @@ import { findTerminalTabWorktreeId } from './native-chat-file-link'
 import { useKnownWorktreeById } from '@/store/selectors'
 
 const MENTION_FILE_LIMIT = 20
-const NO_FILES: readonly string[] = []
+const MENTION_FOLDER_LIMIT = 6
+const NO_ITEMS: readonly NativeChatMentionItem[] = []
+
+export type NativeChatMentionItem = { kind: 'file' | 'folder'; path: string }
+
+export function nativeChatMentionFolders(files: readonly string[]): string[] {
+  const folders = new Set<string>()
+  for (const file of files) {
+    const parts = file.replaceAll('\\', '/').split('/')
+    for (let length = 1; length < parts.length; length += 1) {
+      folders.add(parts.slice(0, length).join('/'))
+    }
+  }
+  return [...folders]
+}
+
+export function nativeChatMentionItems(
+  query: string,
+  files: readonly string[],
+  history: readonly string[],
+  folders: readonly string[]
+): NativeChatMentionItem[] {
+  const rankedFolders = rankQuickOpenFilesWithHistory(query, folders, [])
+    .slice(0, MENTION_FOLDER_LIMIT)
+    .map(({ path }): NativeChatMentionItem => ({ kind: 'folder', path }))
+  const rankedFiles = rankQuickOpenFilesWithHistory(query, files, history)
+    .slice(0, MENTION_FILE_LIMIT - rankedFolders.length)
+    .map(({ path }): NativeChatMentionItem => ({ kind: 'file', path }))
+  return [...rankedFolders, ...rankedFiles]
+}
 
 export type NativeChatMentionFiles = {
   /** Workspace-relative paths, best match first. */
-  files: readonly string[]
+  items: readonly NativeChatMentionItem[]
   loading: boolean
   failed: boolean
 }
@@ -39,18 +68,15 @@ export function useNativeChatMentionFiles(args: {
     recentPaths: history
   })
   const failed = list.loadError !== null
+  const folders = useMemo(() => nativeChatMentionFolders(list.files), [list.files])
 
   return useMemo(
     () => ({
-      files:
-        query === null
-          ? NO_FILES
-          : rankQuickOpenFilesWithHistory(query, list.files, history)
-              .slice(0, MENTION_FILE_LIMIT)
-              .map((item) => item.path),
+      items:
+        query === null ? NO_ITEMS : nativeChatMentionItems(query, list.files, history, folders),
       loading: list.loading,
       failed
     }),
-    [failed, history, list.files, list.loading, query]
+    [failed, folders, history, list.files, list.loading, query]
   )
 }

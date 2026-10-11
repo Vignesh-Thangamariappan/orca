@@ -7,7 +7,7 @@ import type { useImeEnterGestureOwnership } from '@/lib/ime-composition-keyboard
 import { cn } from '@/lib/utils'
 import type { ComposerAutocomplete, NativeChatPickerItem } from './native-chat-composer-state'
 import { NativeChatMentionMenu, NativeChatPickerMenu } from './NativeChatAutocompleteMenus'
-import type { NativeChatMentionFiles } from './use-native-chat-mention-files'
+import type { NativeChatMentionFiles, NativeChatMentionItem } from './use-native-chat-mention-files'
 import { NativeChatComposerActions } from './NativeChatComposerActions'
 import { NativeChatComposerNotices } from './NativeChatComposerNotices'
 import type { NativeChatComposerNotice } from './native-chat-composer-notice'
@@ -71,7 +71,7 @@ export type NativeChatComposerFieldProps = {
   pickerListboxId: string
   onChoosePickerItem: (item: NativeChatPickerItem) => void
   onRetrySkills: () => void
-  onChooseMentionFile: (path: string) => void
+  onChooseMentionFile: (item: NativeChatMentionItem) => void
   onRemoveImageAttachment: (id: string) => void
   onAttach: () => void
   onDictationToggle: () => void
@@ -85,6 +85,7 @@ export type NativeChatComposerFieldProps = {
   sessionOptionsSnapshot: SessionOptionDescriptor[]
   contextUsage?: NativeChatContextUsageSummary | null
   sessionOptionsPickerRequest?: NativeChatOptionPickerRequest | null
+  modelShortcutSequence?: number
   goalMode?: NativeChatComposerGoalMode
 }
 
@@ -170,6 +171,7 @@ export function NativeChatComposerField({
   sessionOptionsSnapshot,
   contextUsage,
   sessionOptionsPickerRequest,
+  modelShortcutSequence = 0,
   goalMode
 }: NativeChatComposerFieldProps): React.JSX.Element {
   const draftNotSaved = useNativeChatComposerDraftUnsaved(draftScopeKey)
@@ -177,7 +179,7 @@ export function NativeChatComposerField({
     autocomplete.mode === 'slash'
       ? autocomplete.items.length
       : autocomplete.mode === 'mention'
-        ? mentionFiles.files.length
+        ? mentionFiles.items.length
         : 0
   // Value the IME started from, and whether a programmatic clear was dropped on top of it.
   const compositionBaseRef = useRef('')
@@ -380,6 +382,7 @@ export function NativeChatComposerField({
                 sessionOptionsSnapshot={sessionOptionsSnapshot}
                 contextUsage={contextUsage}
                 sessionOptionsPickerRequest={sessionOptionsPickerRequest}
+                modelShortcutSequence={modelShortcutSequence}
                 focusComposer={focusComposer}
                 onExitGoalMode={goalMode?.active ? goalMode.exit : undefined}
               />

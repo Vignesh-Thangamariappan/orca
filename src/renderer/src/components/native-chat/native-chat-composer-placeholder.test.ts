@@ -18,7 +18,7 @@ describe("the composer's placeholder", () => {
 
   it('reads as usual otherwise', () => {
     expect(nativeChatComposerPlaceholder(true, true)).toBe(
-      'Ask anything, @ to mention files, / for commands'
+      'Ask anything, @ for files or folders, / for commands'
     )
   })
 

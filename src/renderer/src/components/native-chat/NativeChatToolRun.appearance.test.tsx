@@ -196,7 +196,8 @@ import { i18n } from '@/i18n/i18n'
       )
       expect(screen.getByText('Awaiting user input:')).toBeInTheDocument()
       expect(screen.getByText('Reading 1 file')).toBeInTheDocument()
-      expect(screen.getByText('Read a.ts')).toBeInTheDocument()
+      openToolRunMembers()
+      expect(screen.getByRole('button', { name: /Reading a\.ts/ })).toBeInTheDocument()
     })
 
     it('preserves errors from failed question calls', () => {

@@ -206,10 +206,9 @@ import type { NativeChatLiveSession } from './use-native-chat-live-session'
         })
       )
       expect(screen.queryByText('Thinking')).toBeNull()
-      expect(screen.getByRole('button', { name: 'Reasoning' })).toHaveAttribute(
-        'aria-expanded',
-        'false'
-      )
+      expect(
+        screen.getByRole('button', { name: 'Reasoning Weighing two approaches' })
+      ).toHaveAttribute('aria-expanded', 'false')
     })
 
     // The open block can sit on a slot kept for its turn's bar or diff rollup; only the slot stays.

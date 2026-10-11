@@ -6,7 +6,11 @@ import {
   listRuntimeFilesMock,
   seedRemoteWorktree
 } from '../quick-open-file-list-test-harness'
-import { useNativeChatMentionFiles } from './use-native-chat-mention-files'
+import {
+  nativeChatMentionItems,
+  nativeChatMentionFolders,
+  useNativeChatMentionFiles
+} from './use-native-chat-mention-files'
 
 vi.mock('@/runtime/runtime-file-client', async () => {
   const mocks = await import('../__mocks__/quick-open-runtime-file-client')
@@ -28,8 +32,21 @@ describe('useNativeChatMentionFiles', () => {
       })
     )
     await flushEffects()
-    expect(result.current.files).toEqual([])
+    expect(result.current.items).toEqual([])
     expect(listRuntimeFilesMock).not.toHaveBeenCalled()
     unmount()
   })
+})
+
+it('offers matching parent folders alongside files with bounded results', () => {
+  const items = nativeChatMentionItems(
+    'src',
+    ['src/app.ts', 'src/components/Button.tsx', 'docs/guide.md'],
+    [],
+    nativeChatMentionFolders(['src/app.ts', 'src/components/Button.tsx', 'docs/guide.md'])
+  )
+  expect(items).toContainEqual({ kind: 'folder', path: 'src' })
+  expect(items).toContainEqual({ kind: 'folder', path: 'src/components' })
+  expect(items).toContainEqual({ kind: 'file', path: 'src/app.ts' })
+  expect(items).not.toContainEqual({ kind: 'folder', path: 'docs' })
 })

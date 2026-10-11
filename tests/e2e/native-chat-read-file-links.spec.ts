@@ -62,6 +62,17 @@ test('short file reads expose their links in the chat trail', async ({
             { type: 'tool_result', tool_use_id: 'index', content: 'export const value = 1' }
           ]
         }
+      },
+      {
+        sessionId,
+        uuid: `${sessionId}-complete`,
+        timestamp: new Date(startedAt + 3_000).toISOString(),
+        type: 'assistant',
+        message: {
+          role: 'assistant',
+          model: 'claude-opus-4',
+          content: [{ type: 'text', text: 'Read complete.' }]
+        }
       }
     ]
       .map((line) => JSON.stringify(line))
@@ -83,6 +94,16 @@ test('short file reads expose their links in the chat trail', async ({
   await expect(chat.getByRole('link', { name: readmePath })).toBeVisible()
   await expect(chat.getByRole('link', { name: indexPath })).toBeVisible()
   await orcaPage.screenshot({ path: testInfo.outputPath('visible-read-links.png') })
+
+  const composer = chat.getByRole('textbox', {
+    name: 'Ask anything, @ for files or folders, / for commands'
+  })
+  await composer.click()
+  await orcaPage.keyboard.type('@sr')
+  await expect(chat.getByRole('option', { name: /src.*Folder/ })).toBeVisible()
+  await chat.getByRole('option', { name: /src.*Folder/ }).click()
+  await expect(composer).toHaveText('@src/ ')
+
   await chat.getByRole('link', { name: readmePath }).click()
   await orcaPage
     .getByRole('dialog')

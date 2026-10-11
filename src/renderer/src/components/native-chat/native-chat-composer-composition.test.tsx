@@ -60,7 +60,7 @@ function fieldProps(overrides: Partial<TestFieldProps> = {}): TestFieldProps {
     onChoosePickerItem: vi.fn(),
     onRetrySkills: vi.fn(),
     onChooseMentionFile: vi.fn(),
-    mentionFiles: { files: [], loading: false, failed: false },
+    mentionFiles: { items: [], loading: false, failed: false },
     onRemoveImageAttachment: vi.fn(),
     onAttach: vi.fn(),
     onDictationToggle: vi.fn(),

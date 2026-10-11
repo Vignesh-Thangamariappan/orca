@@ -161,6 +161,11 @@ describe('apply suggestions', () => {
     expect(result.draft).toBe('@"docs/my notes.md" ')
   })
 
+  it('applyMentionSuggestion shows the exact folder reference that will be sent', () => {
+    const result = applyMentionSuggestion('inspect @src', 12, 'src/components/')
+    expect(result.draft).toBe('inspect @src/components/ ')
+  })
+
   it('applyPickerSuggestion swaps the typed /token for the agent-native token', () => {
     const result = applyPickerSuggestion('use /typ now', 8, {
       kind: 'skill',

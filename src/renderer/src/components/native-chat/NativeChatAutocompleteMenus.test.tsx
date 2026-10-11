@@ -210,13 +210,19 @@ describe('NativeChatPickerMenu', () => {
 describe('NativeChatMentionMenu', () => {
   afterEach(cleanup)
 
-  const NO_ROWS = { files: [], loading: false, failed: false }
+  const NO_ROWS = { items: [], loading: false, failed: false }
 
   it('lists files by name with their folder and inserts the one pressed', () => {
     const onChoose = vi.fn()
     render(
       <NativeChatMentionMenu
-        mention={{ ...NO_ROWS, files: ['src/app.ts', 'README.md'] }}
+        mention={{
+          ...NO_ROWS,
+          items: [
+            { kind: 'file', path: 'src/app.ts' },
+            { kind: 'file', path: 'README.md' }
+          ]
+        }}
         activeIndex={1}
         listboxId="files"
         onChoose={onChoose}
@@ -228,12 +234,30 @@ describe('NativeChatMentionMenu', () => {
     fireEvent.pointerDown(options[1], { button: 2 })
     expect(onChoose).not.toHaveBeenCalled()
     fireEvent.pointerDown(options[0])
-    expect(onChoose).toHaveBeenCalledWith('src/app.ts')
+    expect(onChoose).toHaveBeenCalledWith({ kind: 'file', path: 'src/app.ts' })
+  })
+
+  it('marks a folder clearly in the mention list', () => {
+    const onChoose = vi.fn()
+    render(
+      <NativeChatMentionMenu
+        mention={{
+          ...NO_ROWS,
+          items: [{ kind: 'folder', path: 'src/components' }]
+        }}
+        activeIndex={0}
+        listboxId="folders"
+        onChoose={onChoose}
+      />
+    )
+    expect(screen.getByRole('option', { name: /components.*Folder/ })).toBeTruthy()
+    fireEvent.pointerDown(screen.getByRole('option'))
+    expect(onChoose).toHaveBeenCalledWith({ kind: 'folder', path: 'src/components' })
   })
 
   it.each([
-    [NO_ROWS, 'No matching files'],
-    [{ ...NO_ROWS, loading: true, failed: true }, 'Loading files...'],
+    [NO_ROWS, 'No matching files or folders'],
+    [{ ...NO_ROWS, loading: true, failed: true }, 'Loading files and folders...'],
     [{ ...NO_ROWS, failed: true }, "Couldn't load files"]
   ])('explains an empty list: %#', (mention, text) => {
     render(

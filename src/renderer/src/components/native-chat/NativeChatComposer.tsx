@@ -3,7 +3,10 @@ import type { NativeChatComposerInput } from './native-chat-composer-input'
 import { forwardRef, useCallback, useState } from 'react'
 import { useNativeChatComposerInterrupt } from './use-native-chat-composer-interrupt'
 import { useNativeChatContextUsageSummary } from './use-native-chat-context-usage-summary'
-import { useNativeChatMentionFiles } from './use-native-chat-mention-files'
+import {
+  useNativeChatMentionFiles,
+  type NativeChatMentionItem
+} from './use-native-chat-mention-files'
 import { useNativeChatDraft } from './use-native-chat-draft'
 import { useNativeChatComposerRecall } from './use-native-chat-composer-recall'
 import { useNativeChatLaunchDraftAdoption } from './use-native-chat-launch-draft-adoption'
@@ -84,6 +87,7 @@ const NativeChatComposerPane = forwardRef<NativeChatComposerHandle, NativeChatCo
       imeEnterGesture.isComposing
     )
     const [caret, setCaret] = useState(draft.length)
+    const [modelShortcutSequence, setModelShortcutSequence] = useState(0)
     useNativeChatLaunchDraftAdoption({
       terminalTabId,
       agent,
@@ -141,6 +145,11 @@ const NativeChatComposerPane = forwardRef<NativeChatComposerHandle, NativeChatCo
       terminalTabId,
       structuredWorktreeId: structuredTransport?.worktreeId
     })
+    const chooseMention = useCallback(
+      (item: NativeChatMentionItem) =>
+        completeMention(item.kind === 'folder' ? `${item.path}/` : item.path),
+      [completeMention]
+    )
 
     // Resolve the live ptyId for this chat leaf; the id names its owning host.
     const resolveTarget = useCallback((): NativeChatResolvedTarget | null => {
@@ -240,6 +249,10 @@ const NativeChatComposerPane = forwardRef<NativeChatComposerHandle, NativeChatCo
     const sessionOptionsSurface = structuredTransport?.optionsSurface ?? ptySessionOptionsSurface
     const contextUsageSummary = useNativeChatContextUsageSummary(structuredTransport)
     const sessionOptionsSnapshot = structuredTransport?.optionSnapshot ?? ptySessionOptionsSnapshot
+    const canOpenModelPicker =
+      !isWorking &&
+      sessionOptionsSurface !== null &&
+      sessionOptionsSnapshot.some((option) => option.category === 'model')
 
     const { send: sendStructured, fieldProps: queue } = useNativeChatHeldQueueComposerSend({
       agent,
@@ -318,6 +331,9 @@ const NativeChatComposerPane = forwardRef<NativeChatComposerHandle, NativeChatCo
       autocomplete,
       mentionFiles,
       completeMention,
+      ...(canOpenModelPicker
+        ? { openModelPicker: () => setModelShortcutSequence((sequence) => sequence + 1) }
+        : {}),
       activeSuggestion,
       draft,
       recall: recall.recall,
@@ -390,7 +406,7 @@ const NativeChatComposerPane = forwardRef<NativeChatComposerHandle, NativeChatCo
         onChoosePickerItem={goalMode.interceptPick(completeItem)}
         goalMode={goalMode}
         onRetrySkills={picker.retrySkills}
-        onChooseMentionFile={completeMention}
+        onChooseMentionFile={chooseMention}
         onRemoveImageAttachment={(id) => removeImageAttachment(id)}
         onAttach={pickAttachments}
         onDictationToggle={dictation.toggleDictation}
@@ -403,6 +419,7 @@ const NativeChatComposerPane = forwardRef<NativeChatComposerHandle, NativeChatCo
         sessionOptionsSnapshot={sessionOptionsSnapshot}
         contextUsage={contextUsageSummary}
         sessionOptionsPickerRequest={structuredTransport?.optionPickerRequest ?? null}
+        modelShortcutSequence={modelShortcutSequence}
       />
     )
   }
