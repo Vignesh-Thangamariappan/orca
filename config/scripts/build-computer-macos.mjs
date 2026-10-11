@@ -29,11 +29,36 @@ createHelperApp()
 
 function buildUniversalBinary() {
   const builtBinaries = universalTriples.map((triple) => {
-    run('swift', ['build', '-c', 'release', '--package-path', packagePath, '--triple', triple])
-    return path.join(packagePath, '.build', triple, 'release', 'orca-computer-use-macos')
+    const args = [
+      'build',
+      '-c',
+      'release',
+      '--package-path',
+      packagePath,
+      '--scratch-path',
+      path.join(packagePath, '.build', triple),
+      '--triple',
+      triple
+    ]
+    run('swift', args)
+    // SwiftPM and Xcode-backed SwiftPM use different output layouts.
+    const binPath = runOutput('swift', [...args, '--show-bin-path'])
+    return path.join(binPath, 'orca-computer-use-macos')
   })
   mkdirSync(path.dirname(binaryPath), { recursive: true })
   run('lipo', ['-create', ...builtBinaries, '-output', binaryPath])
+}
+
+function runOutput(command, args) {
+  const result = spawnSync(command, args, { encoding: 'utf8' })
+  if (result.signal) {
+    process.kill(process.pid, result.signal)
+  }
+  if (result.status !== 0) {
+    process.stderr.write(result.stderr || `${command} failed\n`)
+    process.exit(result.status ?? 1)
+  }
+  return result.stdout.trim()
 }
 
 function createHelperApp() {
@@ -73,13 +98,15 @@ function resolveSigningIdentity() {
   if (identities.status !== 0 || !identities.stdout) {
     return '-'
   }
-  const developmentMatch = identities.stdout.match(/"([^"]*Apple Development:[^"]+)"/)
+  const developmentMatch = identities.stdout.match(
+    /\b([0-9A-F]{40}) "[^"]*Apple Development:[^"]+"/
+  )
   if (process.env.ORCA_MAC_RELEASE !== '1' && developmentMatch) {
     return developmentMatch[1]
   }
   const releaseMatch =
-    identities.stdout.match(/"([^"]*Developer ID Application:[^"]+)"/) ??
-    identities.stdout.match(/"([^"]*Apple Distribution:[^"]+)"/)
+    identities.stdout.match(/\b([0-9A-F]{40}) "[^"]*Developer ID Application:[^"]+"/) ??
+    identities.stdout.match(/\b([0-9A-F]{40}) "[^"]*Apple Distribution:[^"]+"/)
   return releaseMatch?.[1] ?? developmentMatch?.[1] ?? '-'
 }
 
