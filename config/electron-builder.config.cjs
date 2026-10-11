@@ -461,6 +461,16 @@ module.exports = {
         'orca-keyboard-layout',
         context.packager
       )
+      if (!isMacRelease) {
+        const appPath = join(resourcesDir, '..', '..')
+        // Local DMGs need a sealed outer bundle even without release credentials.
+        execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], {
+          stdio: 'inherit'
+        })
+        execFileSync('codesign', ['--verify', '--deep', '--strict', appPath], {
+          stdio: 'inherit'
+        })
+      }
     }
   },
   win: {

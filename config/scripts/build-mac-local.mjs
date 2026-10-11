@@ -37,6 +37,8 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename
     {
       env: {
         ...process.env,
+        CSC_IDENTITY_AUTO_DISCOVERY: 'false',
+        ORCA_COMPUTER_MACOS_SIGN_IDENTITY: '-',
         ORCA_BUILD_COMMIT: identity.commit,
         ORCA_LOCAL_BUILD_VERSION: identity.version
       },
